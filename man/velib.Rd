@@ -12,9 +12,9 @@ This data set contains data from the bike sharing system of Paris, called Vélib
 \format{
 The format is:
 
-  - data: the loading profiles (nb of available bikes / nb of bike docks) of the 1146 stations at 181 times.
+  - data: the loading profiles (nb of available bikes / nb of bike docks) of the 1189 stations at 181 time points.
   
-  - position: the longitude and latitude of the 1146 bike stations.
+  - position: the longitude and latitude of the 1189 bike stations.
   
   - dates: the download dates.
   
