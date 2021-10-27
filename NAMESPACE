@@ -1,2 +1,4 @@
 exportPattern("^[[:alpha:]]+")
 import(MASS, fda, elasticnet)
+importFrom("graphics", "par")
+importFrom("stats", "cov", "cutree", "dist", "hclust", "kmeans","rmultinom")

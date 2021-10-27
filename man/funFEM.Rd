@@ -8,7 +8,7 @@ The funFEM algorithm for the clustering of functional data.
 The funFEM algorithm allows to cluster time series or, more generally, functional data. It is based on a discriminative functional mixture model which allows the clustering of the data in a unique and discriminative functional subspace. This model presents the advantage to be parsimonious and can therefore handle long time series.
 }
 \usage{
-funFEM(fd, K=2:6, model = "AkjBk", crit = "bic", init = "hclust", Tinit = c(), maxit = 50,
+funFEM(fd, K=2:6, model = "AkjBk", crit = "bic", init = "kmeans", Tinit = c(), maxit = 50,
   eps = 1e-06, disp = FALSE, lambda = 0, graph = FALSE)
 }
 \arguments{
@@ -25,7 +25,7 @@ a vector of discriminative latent mixture (DLM) models to fit. There are 12 diff
 the criterion to be used for model selection ('bic', 'aic' or 'icl'). 'bic' is the default.
 }
   \item{init}{
-the initialization type ('random', 'kmeans' of 'hclust'). 'hclust' is the default.
+the initialization type ('random', 'kmeans' of 'hclust'). 'kmeans' is the default.
 }
   \item{Tinit}{
 a n x K matrix which contains posterior probabilities for initializing the algorithm (each line corresponds to an individual).
@@ -79,61 +79,69 @@ res = funFEM(fdobj,K=4)
 
 # Visualization of the partition and the group means
 par(mfrow=c(1,2))
-plot(fdobj,col=res$cls,lwd=2,lty=1)
+plot(fdobj); lines(fdobj,col=res$cls,lwd=2,lty=1)
 fdmeans = fdobj; fdmeans$coefs = t(res$prms$my)
-plot(fdmeans,col=1:max(res$cls),lwd=2)
+plot(fdmeans); lines(fdmeans,col=1:max(res$cls),lwd=2)
 
-## DO NOT RUN
-# # Load the velib data and smoothing
-# data(velib)
-# basis<- create.fourier.basis(c(0, 181), nbasis=25)
-# fdobj <- smooth.basis(1:181,t(velib$data),basis)$fd
-# 
-# # Clustrering with FunFEM
-# res = funFEM(fdobj,K=6,model='AkjBk',init='kmeans',lambda=0,disp=TRUE)
-# 
-# # Visualization of group means
-# fdmeans = fdobj; fdmeans$coefs = t(res$prms$my)
-# plot(fdmeans,col=1:res$K,xaxt='n',lwd=2)
-# axis(1,at=seq(5,181,6),labels=velib$dates[seq(5,181,6)],las=2)
-# 
-# # Choice of K
+# Visualization in the discriminative subspace (projected scores)
+par(mfrow=c(1,1))
+plot(t(fdobj$coefs) \%*\% res$U,col=res$cls,pch=19,main="Discriminative space")
+
+\donttest{
+###############################################################################
+# Analysis of the Velib data set
+
+# Load the velib data and smoothing
+data(velib)
+basis<- create.fourier.basis(c(0, 181), nbasis=25)
+fdobj <- smooth.basis(1:181,t(velib$data),basis)$fd
+
+# Clustrering with FunFEM
+res = funFEM(fdobj,K=6,model='AkjBk',init='kmeans',lambda=0,disp=TRUE)
+
+# Visualization of group means
+fdmeans = fdobj; fdmeans$coefs = t(res$prms$my)
+plot(fdmeans); lines(fdmeans,col=1:res$K,lwd=2,lty=1)
+axis(1,at=seq(5,181,6),labels=velib$dates[seq(5,181,6)],las=2)
+
+# # Choice of K (may be long!)
 # res = funFEM(fdobj,K=2:20,model='AkjBk',init='kmeans',lambda=0,disp=TRUE)
 # plot(2:20,res$plot$bic,type='b',xlab='K',main='BIC')
-# 
-# # Computation of the closest stations from the group means
-# par(mfrow=c(3,2))
-# for (i in 1:res$K) {
-#   matplot(t(velib$data[which.max(res$P[,i]),]),type='l',lty=i,col=i,xaxt='n',
-#      lwd=2,ylim=c(0,1))
-#   axis(1,at=seq(5,181,6),labels=velib$dates[seq(5,181,6)],las=2)
-#   title(main=paste('Cluster',i,' - ',velib$names[which.max(res$P[,i])]))
-# }
-# 
-# # Visualization in the discriminative subspace (projected scores)
-# par(mfrow=c(1,1))
-# plot(t(fdobj$coefs)
-# text(t(fdobj$coefs)
-# 
+
+# Computation of the closest stations from the group means
+par(mfrow=c(3,2))
+for (i in 1:res$K) {
+  matplot(t(velib$data[which.max(res$P[,i]),]),type='l',lty=i,col=i,xaxt='n',
+          lwd=2,ylim=c(0,1))
+  axis(1,at=seq(5,181,6),labels=velib$dates[seq(5,181,6)],las=2)
+  title(main=paste('Cluster',i,' - ',velib$names[which.max(res$P[,i])]))
+}
+
+# Visualization in the discriminative subspace (projected scores)
+par(mfrow=c(1,1))
+plot(t(fdobj$coefs) \%*\% res$U,col=res$cls,pch=19,main="Discriminative space")
+text(t(fdobj$coefs) \%*\% res$U)
+
 # # Spatial visualization of the clustering (with library ggmap)
 # library(ggmap)
 # Mymap = get_map(location = 'Paris', zoom = 12, maptype = 'terrain')
 # ggmap(Mymap) + geom_point(data=velib$position,aes(longitude,latitude),
-#     colour = I(res$cl), size = I(3))
-# 
-# # FunFEM clustering with sparsity
-# res2 = funFEM(fdobj,K=res$K,model='AkjBk',init='user',Tinit=res$P,
-#     lambda=0.01,disp=TRUE)
-# 
-# # Visualization of group means and the selected functional bases
-# split.screen(c(2,1))
-# fdmeans = fdobj; fdmeans$coefs = t(res2$prms$my)
-# screen(1); plot(fdmeans,col=1:res2$K,xaxt='n',lwd=2); axis(1,at=seq(5,181,6),
-#       labels=velib$dates[seq(5,181,6)],las=2)
-# basis$dropind = which(rowSums(abs(res2$U))==0)
-# screen(2); plot(basis,col=1,lty=1,xaxt='n',xlab='Disc. basis functions')
-# axis(1,at=seq(5,181,6),labels=velib$dates[seq(5,181,6)],las=2)
-# close.screen(all=TRUE)
+#                           colour = I(res$cl), size = I(3))
+
+# FunFEM clustering with sparsity
+res2 = funFEM(fdobj,K=res$K,model='AkjBk',init='user',Tinit=res$P,
+              lambda=0.01,disp=TRUE)
+
+# Visualization of group means and the selected functional bases
+split.screen(c(2,1))
+fdmeans = fdobj; fdmeans$coefs = t(res2$prms$my)
+screen(1); plot(fdmeans,col=1:res2$K,xaxt='n',lwd=2) 
+axis(1,at=seq(5,181,6),labels=velib$dates[seq(5,181,6)],las=2)
+basis$dropind = which(rowSums(abs(res2$U))==0)
+screen(2); plot(basis,col=1,lty=1,xaxt='n',xlab='Disc. basis functions')
+axis(1,at=seq(5,181,6),labels=velib$dates[seq(5,181,6)],las=2)
+close.screen(all=TRUE)
+}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
